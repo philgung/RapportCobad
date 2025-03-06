@@ -9,18 +9,30 @@ public static class Parser
         var rapport = new Rapport();
         foreach (string repertoireSaison in Directory.GetDirectories(chemin))
         {
-            var saison = new Saison(Path.GetFileName(repertoireSaison));
-
-            foreach (var fichierCompetition in Directory.GetFiles(repertoireSaison, "*.xlsx"))
-            {
-                var competition = CreerCompetition(fichierCompetition);
-                saison.Competitions.Add(competition);
-            }
+            var saison = CreerSaison(repertoireSaison);
 
             rapport.Saisons.Add(saison);
         }
 
         return rapport;
+    }
+
+    private static Saison CreerSaison(string repertoireSaison)
+    {
+        var saison = new Saison(Path.GetFileName(repertoireSaison));
+
+        AjouterLesCompetitions(repertoireSaison, saison);
+
+        return saison;
+    }
+
+    private static void AjouterLesCompetitions(string repertoireSaison, Saison saison)
+    {
+        foreach (var fichierCompetition in Directory.GetFiles(repertoireSaison, "*.xlsx"))
+        {
+            var competition = CreerCompetition(fichierCompetition);
+            saison.Competitions.Add(competition);
+        }
     }
 
     private static Competition CreerCompetition(string chemin)
