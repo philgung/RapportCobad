@@ -1,3 +1,5 @@
+using System.Globalization;
+using CsvHelper;
 using OfficeOpenXml;
 
 namespace Affichage;
@@ -22,8 +24,29 @@ public static class Parser
         var saison = new Saison(Path.GetFileName(repertoireSaison));
 
         AjouterLesCompetitions(repertoireSaison, saison);
+        AjouterLesAdherents(repertoireSaison, saison);
 
         return saison;
+    }
+
+    private static void AjouterLesAdherents(string repertoireSaison, Saison saison)
+    {
+        foreach (var fichierAdherents in Directory.GetFiles(repertoireSaison, "*.csv"))
+        {
+            using (var reader = new StreamReader(fichierAdherents))
+            using (var csv = new CsvReader(reader, new CsvHelper.Configuration.CsvConfiguration(CultureInfo.InvariantCulture)
+                   {
+                       Delimiter = ";",
+                   }))
+            {
+                var adherentDto = csv.GetRecords<AdherentDTO>();
+                foreach (var dto in adherentDto)
+                {
+                    saison.Adherents.Add(new Adherent(dto.Sexe, dto.Nom, dto.Prenom, dto.Licence, dto.Sigle, dto.Categorie));
+                }
+            }
+        }
+
     }
 
     private static void AjouterLesCompetitions(string repertoireSaison, Saison saison)
@@ -64,3 +87,14 @@ public static class Parser
         return competition;
     }
 }
+
+internal class AdherentDTO
+{
+    public string Sexe { get; set; }
+    public string Nom { get; set; }
+    public string Prenom { get; set; }
+    public string Licence { get; set; }
+    public string Sigle { get; set; }
+    public string Categorie { get; set; }
+}
+
