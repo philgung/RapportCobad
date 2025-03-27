@@ -1,5 +1,3 @@
-using System.Globalization;
-using CsvHelper;
 using OfficeOpenXml;
 
 namespace Affichage;
@@ -11,6 +9,7 @@ public static class Parser
         var rapport = new Rapport();
         foreach (string repertoireSaison in Directory.GetDirectories(chemin))
         {
+            if (repertoireSaison.EndsWith("Archive")) continue;
             var saison = CreerSaison(repertoireSaison);
 
             rapport.Saisons.Add(saison);
@@ -31,27 +30,38 @@ public static class Parser
 
     private static void AjouterLesAdherents(string repertoireSaison, Saison saison)
     {
-        foreach (var fichierAdherents in Directory.GetFiles(repertoireSaison, "*.csv"))
-        {
-            using (var reader = new StreamReader(fichierAdherents))
-            using (var csv = new CsvReader(reader, new CsvHelper.Configuration.CsvConfiguration(CultureInfo.InvariantCulture)
-                   {
-                       Delimiter = ";",
-                   }))
-            {
-                var adherentDto = csv.GetRecords<AdherentDTO>();
-                foreach (var dto in adherentDto)
-                {
-                    saison.Adherents.Add(new Adherent(dto.Sexe, dto.Nom, dto.Prenom, dto.Licence, dto.Sigle, dto.Categorie));
-                }
-            }
-        }
+        var fichierAdherents = Path.Combine(repertoireSaison, $"{saison.NomDeLaSaison}.xlsx");
 
+        var fileInfo = new FileInfo(fichierAdherents);
+        using var package = new ExcelPackage(fileInfo);
+        var workbook = package.Workbook;
+        var worksheet = workbook.Worksheets[0];
+        var rowCount = worksheet.Dimension.Rows;
+
+        for (var row = 2; row <= rowCount; row++)
+        {
+            var sexe = worksheet.Cells[row, 1].Text;
+            var nom = worksheet.Cells[row, 2].Text;
+            var prenom = worksheet.Cells[row, 3].Text;
+            var licence = worksheet.Cells[row, 4].Text;
+            var saisonLabel = worksheet.Cells[row, 5].Text;
+            var sigle = worksheet.Cells[row, 6].Text;
+            var categorie = worksheet.Cells[row, 7].Text;
+            var competiteurActif = worksheet.Cells[row, 8].Text;
+            var meilleurPlume = worksheet.Cells[row, 9].Text;
+            var estHandicape = worksheet.Cells[row, 10].Text;
+            var handicap = worksheet.Cells[row, 11].Text;
+
+            if (string.IsNullOrWhiteSpace(nom) && string.IsNullOrWhiteSpace(prenom) &&
+                string.IsNullOrWhiteSpace(licence) && string.IsNullOrWhiteSpace(sigle) &&
+                string.IsNullOrWhiteSpace(categorie)) continue;
+            saison.Adherents.Add(new Adherent(sexe, nom, prenom, licence, sigle, categorie, saisonLabel, competiteurActif, meilleurPlume, estHandicape, handicap));
+        }
     }
 
     private static void AjouterLesCompetitions(string repertoireSaison, Saison saison)
     {
-        foreach (var fichierCompetition in Directory.GetFiles(repertoireSaison, "*.xlsx"))
+        foreach (var fichierCompetition in Directory.GetFiles(Path.Combine(repertoireSaison, "Competitions"), "*.xlsx"))
         {
             var competition = CreerCompetition(fichierCompetition);
             saison.Competitions.Add(competition);
