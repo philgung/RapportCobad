@@ -1,5 +1,3 @@
-// définir les joueurs nouveaux des joueurs déjà présents
-
 using OfficeOpenXml;
 using OfficeOpenXml.Table;
 using static Affichage.Parser;
@@ -10,78 +8,32 @@ ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
 var rapport = CreerRapport(@"C:\Users\philippe.gung\Rapport");
 
 // Grouper par club, puis par saison, puis par catégorie d'age
-var adherentsParClub = rapport.Saisons.SelectMany(s => s.Adherents)
-    .GroupBy(a => a.SigleClub)
-    .Select(g => new
-    {
-        Club = g.Key,
-        Saisons = g.GroupBy(a => a.Saison)
-            .Select(g => new
-            {
-                Saison = g.Key,
-                Categories = g.GroupBy(a => a.Categorie)
-                    .Select(g => new
-                    {
-                        Categorie = g.Key,
-                        Adherents = g.ToList()
-                    }).ToList()
-            }).ToList()
-    }).ToList();
+var adherentsParClub = rapport.GetAdherentsParClub();
 
 
-// Create a new Excel package
+// Adhérents qui se réinscrive : Adhérents n-1 de tous les clubs dans toutes les catégories
+// Nouveaux adhérents (H/F) par catégorie (poussin1/poussin2) par club
+// Compétiteurs / non compétiteurs par catégorie par club
+// adhérents qui se réinscrive / nouveaux adhérents sur compétiteurs et non compétiteurs par club par catégorie par sexe
+// Etats des lieux sur mutés par club par catégorie par sexe
+
+
+
+
+
 using (var package = new ExcelPackage())
 {
-    var worksheet = package.Workbook.Worksheets.Add("Adherents");
+    AjouterAdherents(package, adherentsParClub);
 
-    // Add merged headers for categories
-    worksheet.Cells[1, 1].Value = "Club";
-    worksheet.Cells[1, 2].Value = "Saison";
+    // var previousSeason = rapport.Saisons.OrderByDescending(s => s.NomDeLaSaison).Skip(1).FirstOrDefault();
+    // var currentSeason = rapport.Saisons.OrderByDescending(s => s.NomDeLaSaison).FirstOrDefault();
+    //
+    // if (previousSeason != null && currentSeason != null)
+    // {
+    //     var previousAdherents = previousSeason.Adherents.Select(a => a.NumeroDeLicence).ToHashSet();
+    //
+    // }
 
-    ConfigureHeader(worksheet, "Minibad", 3);
-    ConfigureHeader(worksheet, "Poussin", 5);
-    ConfigureHeader(worksheet, "Benjamin", 7);
-    ConfigureHeader(worksheet, "Minime", 9);
-    ConfigureHeader(worksheet, "Cadet", 11);
-    ConfigureHeader(worksheet, "Junior", 13);
-    ConfigureHeader(worksheet, "Senior", 15);
-    ConfigureHeader(worksheet, "Veteran", 17);
-    worksheet.Cells[1, 19].Value = "Nombre d'adhérents";
-
-
-    int row = 3;
-    foreach (var club in adherentsParClub)
-    {
-        foreach (var saison in club.Saisons)
-        {
-            var adherents = saison.Categories.SelectMany(c => c.Adherents).ToList();
-            worksheet.Cells[row, 1].Value = club.Club;
-            worksheet.Cells[row, 2].Value = saison.Saison;
-            worksheet.Cells[row, 3].Value = adherents.Count(a => a.EstUnMinibad && a.Sexe == "H");
-            worksheet.Cells[row, 4].Value = adherents.Count(a => a.EstUnMinibad && a.Sexe == "F");
-            worksheet.Cells[row, 5].Value = adherents.Count(a => a.EstUnPoussin && a.Sexe == "H");
-            worksheet.Cells[row, 6].Value = adherents.Count(a => a.EstUnPoussin && a.Sexe == "F");
-            worksheet.Cells[row, 7].Value = adherents.Count(a => a.EstUnBenjamin && a.Sexe == "H");
-            worksheet.Cells[row, 8].Value = adherents.Count(a => a.EstUnBenjamin && a.Sexe == "F");
-            worksheet.Cells[row, 9].Value = adherents.Count(a => a.EstUnMinime && a.Sexe == "H");
-            worksheet.Cells[row, 10].Value = adherents.Count(a => a.EstUnMinime && a.Sexe == "F");
-            worksheet.Cells[row, 11].Value = adherents.Count(a => a.EstUnCadet && a.Sexe == "H");
-            worksheet.Cells[row, 12].Value = adherents.Count(a => a.EstUnCadet && a.Sexe == "F");
-            worksheet.Cells[row, 13].Value = adherents.Count(a => a.EstUnJunior && a.Sexe == "H");
-            worksheet.Cells[row, 14].Value = adherents.Count(a => a.EstUnJunior && a.Sexe == "F");
-            worksheet.Cells[row, 15].Value = adherents.Count(a => a.EstUnSenior && a.Sexe == "H");
-            worksheet.Cells[row, 16].Value = adherents.Count(a => a.EstUnSenior && a.Sexe == "F");
-            worksheet.Cells[row, 17].Value = adherents.Count(a => a.EstUnVeteran && a.Sexe == "H");
-            worksheet.Cells[row, 18].Value = adherents.Count(a => a.EstUnVeteran && a.Sexe == "F");
-            worksheet.Cells[row, 19].Value = adherents.Count;
-            row++;
-        }
-    }
-
-    // Format as table
-    var range = worksheet.Cells[2, 1, row - 1, 19];
-    var table = worksheet.Tables.Add(range, "AdherentsTable");
-    table.TableStyle = TableStyles.Medium9;
 
     // Save the package to a file
     var fileInfo = new FileInfo(@"C:\Users\philippe.gung\Rapport\Adherents.xlsx");
@@ -130,12 +82,91 @@ void ComparerSaisons(Saison precedente, Saison courante)
 
 }
 
-void ConfigureHeader(ExcelWorksheet excelWorksheet, string categorie, int colInitial)
+void AjouterAdherents(ExcelPackage excelPackage, IEnumerable<Rapport.ClubDTO> clubDtos)
 {
-    excelWorksheet.Cells[1, colInitial, 1, colInitial + 1].Merge = true;
-    excelWorksheet.Cells[1, colInitial].Value = categorie;
-    excelWorksheet.Cells[2, colInitial].Value = "H";
-    excelWorksheet.Cells[2, colInitial + 1].Value = "F";
+    var worksheet = excelPackage.Workbook.Worksheets.Add("Adherents");
+
+    // Add merged headers for categories
+    worksheet.Cells[1, 1].Value = "Club";
+    worksheet.Cells[1, 2].Value = "Saison";
+
+    ConfigureHeader(worksheet, "Minibad", 3);
+    ConfigureHeader(worksheet, "Poussin 1", 5);
+    ConfigureHeader(worksheet, "Poussin 2", 7);
+    ConfigureHeader(worksheet, "Benjamin 1", 9);
+    ConfigureHeader(worksheet, "Benjamin 2", 11);
+    ConfigureHeader(worksheet, "Minime 1", 13);
+    ConfigureHeader(worksheet, "Minime 2", 15);
+    ConfigureHeader(worksheet, "Cadet 1", 17);
+    ConfigureHeader(worksheet, "Cadet 2", 19);
+    ConfigureHeader(worksheet, "Junior 1", 21);
+    ConfigureHeader(worksheet, "Junior 2", 23);
+    ConfigureHeader(worksheet, "Senior", 25);
+    ConfigureHeader(worksheet, "Veteran 1", 27);
+    ConfigureHeader(worksheet, "Veteran 2", 29);
+    ConfigureHeader(worksheet, "Veteran 3", 31);
+    ConfigureHeader(worksheet, "Veteran 4+", 33);
+    worksheet.Cells[1, 35].Value = "Nombre d'adhérents";
+
+    var row = 3;
+    foreach (var club in clubDtos)
+    {
+        foreach (var saison in club.Saisons)
+        {
+            var adherents = saison.Categories.SelectMany(c => c.Adherents).ToList();
+            worksheet.Cells[row, 1].Value = club.Sigle;
+            worksheet.Cells[row, 2].Value = saison.Saison;
+            worksheet.Cells[row, 3].Value = adherents.Count(a => a.Categorie.Contains("Minibad") && a.Sexe == "H");
+            worksheet.Cells[row, 4].Value = adherents.Count(a => a.Categorie.Contains("Minibad") && a.Sexe == "F");
+            worksheet.Cells[row, 5].Value = adherents.Count(a => a.Categorie.Contains("Poussin 1") && a.Sexe == "H");
+            worksheet.Cells[row, 6].Value = adherents.Count(a => a.Categorie.Contains("Poussin 1") && a.Sexe == "F");
+            worksheet.Cells[row, 7].Value = adherents.Count(a => a.Categorie.Contains("Poussin 2") && a.Sexe == "H");
+            worksheet.Cells[row, 8].Value = adherents.Count(a => a.Categorie.Contains("Poussin 2") && a.Sexe == "F");
+            worksheet.Cells[row, 9].Value = adherents.Count(a => a.Categorie.Contains("Benjamin 1") && a.Sexe == "H");
+            worksheet.Cells[row, 10].Value = adherents.Count(a => a.Categorie.Contains("Benjamin 1") && a.Sexe == "F");
+            worksheet.Cells[row, 11].Value = adherents.Count(a => a.Categorie.Contains("Benjamin 2") && a.Sexe == "H");
+            worksheet.Cells[row, 12].Value = adherents.Count(a => a.Categorie.Contains("Benjamin 2") && a.Sexe == "F");
+            worksheet.Cells[row, 13].Value = adherents.Count(a => a.Categorie.Contains("Minime 1") && a.Sexe == "H");
+            worksheet.Cells[row, 14].Value = adherents.Count(a => a.Categorie.Contains("Minime 1") && a.Sexe == "F");
+            worksheet.Cells[row, 15].Value = adherents.Count(a => a.Categorie.Contains("Minime 2") && a.Sexe == "H");
+            worksheet.Cells[row, 16].Value = adherents.Count(a => a.Categorie.Contains("Minime 2") && a.Sexe == "F");
+            worksheet.Cells[row, 17].Value = adherents.Count(a => a.Categorie.Contains("Cadet 1") && a.Sexe == "H");
+            worksheet.Cells[row, 18].Value = adherents.Count(a => a.Categorie.Contains("Cadet 1") && a.Sexe == "F");
+            worksheet.Cells[row, 19].Value = adherents.Count(a => a.Categorie.Contains("Cadet 2") && a.Sexe == "H");
+            worksheet.Cells[row, 20].Value = adherents.Count(a => a.Categorie.Contains("Cadet 2") && a.Sexe == "F");
+            worksheet.Cells[row, 21].Value = adherents.Count(a => a.Categorie.Contains("Junior 1") && a.Sexe == "H");
+            worksheet.Cells[row, 22].Value = adherents.Count(a => a.Categorie.Contains("Junior 1") && a.Sexe == "F");
+            worksheet.Cells[row, 23].Value = adherents.Count(a => a.Categorie.Contains("Junior 2") && a.Sexe == "H");
+            worksheet.Cells[row, 24].Value = adherents.Count(a => a.Categorie.Contains("Junior 2") && a.Sexe == "F");
+            worksheet.Cells[row, 25].Value = adherents.Count(a => a.Categorie.Contains("Senior") && a.Sexe == "H");
+            worksheet.Cells[row, 26].Value = adherents.Count(a => a.Categorie.Contains("Senior") && a.Sexe == "F");
+            worksheet.Cells[row, 27].Value = adherents.Count(a => a.Categorie.Contains("Veteran 1") && a.Sexe == "H");
+            worksheet.Cells[row, 28].Value = adherents.Count(a => a.Categorie.Contains("Veteran 1") && a.Sexe == "F");
+            worksheet.Cells[row, 29].Value = adherents.Count(a => a.Categorie.Contains("Veteran 2") && a.Sexe == "H");
+            worksheet.Cells[row, 30].Value = adherents.Count(a => a.Categorie.Contains("Veteran 2") && a.Sexe == "F");
+            worksheet.Cells[row, 31].Value = adherents.Count(a => a.Categorie.Contains("Veteran 3") && a.Sexe == "H");
+            worksheet.Cells[row, 32].Value = adherents.Count(a => a.Categorie.Contains("Veteran 3") && a.Sexe == "F");
+            worksheet.Cells[row, 33].Value = adherents.Count(a => (a.Categorie.Contains("Veteran 4") || a.Categorie.Contains("Veteran 5") || a.Categorie.Contains("Veteran 6") ||
+                                                                   a.Categorie.Contains("Veteran 7") || a.Categorie.Contains("Veteran 8")) && a.Sexe == "H");
+            worksheet.Cells[row, 34].Value = adherents.Count(a => (a.Categorie.Contains("Veteran 4") || a.Categorie.Contains("Veteran 5") || a.Categorie.Contains("Veteran 6") ||
+                                                                   a.Categorie.Contains("Veteran 7") || a.Categorie.Contains("Veteran 8")) && a.Sexe == "F");
+            worksheet.Cells[row, 35].Value = adherents.Count;
+            row++;
+        }
+    }
+
+    // Format as table
+    var range = worksheet.Cells[2, 1, row - 1, 35];
+    var table = worksheet.Tables.Add(range, "AdherentsTable");
+    table.TableStyle = TableStyles.Medium9;
+
+    void ConfigureHeader(ExcelWorksheet excelWorksheet, string categorie, int colInitial)
+    {
+        excelWorksheet.Cells[1, colInitial, 1, colInitial + 1].Merge = true;
+        excelWorksheet.Cells[1, colInitial].Value = categorie;
+        excelWorksheet.Cells[2, colInitial].Value = "H";
+        excelWorksheet.Cells[2, colInitial + 1].Value = "F";
+    }
 }
 
 
@@ -196,6 +227,20 @@ public record Competition(string NomDeLaCompetition)
 public record Rapport
 {
     public List<Saison> Saisons { get; } = new();
+
+    public IEnumerable<ClubDTO> GetAdherentsParClub() {
+        return Saisons.SelectMany(s => s.Adherents)
+            .GroupBy(a => a.SigleClub)
+            .Select(g => new ClubDTO(g.Key, g.GroupBy(a => a.Saison)
+                .Select(g => new SaisonDTO(g.Key, g.GroupBy(a => a.Categorie)
+                    .Select(g => new CategorieDTO(g.Key, g.ToList())).ToList())
+                ).ToList()));
+    }
+
+    public record ClubDTO(string Sigle, IList<SaisonDTO> Saisons);
+    public record SaisonDTO(string Saison, IList<CategorieDTO> Categories);
+    public record CategorieDTO(string Categorie, IList<Adherent> Adherents);
+
     public decimal PourcentageDeCompetiteursAyantRenouveleDUneSaisonSurLAutre => Saisons
         .Zip(Saisons.Skip(1), (s1, s2) => (s1, s2))
         .SelectMany(t => t.s1.Competitions.SelectMany(c => c.Competiteurs)
@@ -205,4 +250,6 @@ public record Rapport
                 .Select(c => c.NumeroDeLicence)
                 .Distinct()))
         .Count() / (decimal)Saisons.Sum(s => s.Competitions.Sum(c => c.Competiteurs.Count));
+
+
 }
