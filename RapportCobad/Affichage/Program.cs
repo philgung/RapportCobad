@@ -10,7 +10,7 @@ var rapport = CreerRapport(@"C:\Users\philippe.gung\Rapport");
 // Grouper par club, puis par saison, puis par catégorie d'age
 var adherentsParClub = rapport.GetAdherentsParClub();
 
-
+var joueurs = rapport.ObtenirJoueurs();
 // Adhérents qui se réinscrive : Adhérents n-1 de tous les clubs dans toutes les catégories
 // Nouveaux adhérents (H/F) par catégorie (poussin1/poussin2) par club
 // Compétiteurs / non compétiteurs par catégorie par club
@@ -21,15 +21,9 @@ var adherentsParClub = rapport.GetAdherentsParClub();
 using (var package = new ExcelPackage())
 {
     AjouterAdherents(package, adherentsParClub);
+    AjouterReinscription(package, joueurs);
 
-    // var previousSeason = rapport.Saisons.OrderByDescending(s => s.NomDeLaSaison).Skip(1).FirstOrDefault();
-    // var currentSeason = rapport.Saisons.OrderByDescending(s => s.NomDeLaSaison).FirstOrDefault();
-    //
-    // if (previousSeason != null && currentSeason != null)
-    // {
-    //     var previousAdherents = previousSeason.Adherents.Select(a => a.NumeroDeLicence).ToHashSet();
-    //
-    // }
+
 
 
     // Save the package to a file

@@ -3,6 +3,46 @@ using OfficeOpenXml.Table;
 
 public static class ExcelExtensions
 {
+    public static void AjouterReinscription(ExcelPackage package, IEnumerable<Rapport.JoueurDTO> joueurs)
+    {
+        var worksheet = package.Workbook.Worksheets.Add("Nouveaux Adherents/Réinscrits");
+        worksheet.Cells[1, 1].Value = "Club";
+        // compare la saison courante avec la saison précédente par avec le nombre d'adherents la saison précédente, le nombre de nouveaux adhérents
+        // le nombre de départ et le nombre de réinscrits par sexe par catégorie et par club
+
+        var categories = new[] { "Minibad", "Poussin 1", "Poussin 2", "Benjamin 1", "Benjamin 2", "Minime 1", "Minime 2", "Cadet 1", "Cadet 2", "Junior 1", "Junior 2", "Senior", "Veteran 1", "Veteran 2", "Veteran 3", "Veteran 4+" };
+
+        var col = 2;
+        foreach (var category in categories)
+        {
+            worksheet.Cells[1, col].Value = category;
+            worksheet.Cells[1, col, 1, col + 5].Merge = true;
+
+            worksheet.Cells[2, col].Value = "H";
+            worksheet.Cells[2, col, 2, col + 2].Merge = true;
+            worksheet.Cells[3, col].Value = "Nouveaux Adhérents";
+            worksheet.Cells[3, col + 1].Value = "Réinscrits";
+            worksheet.Cells[3, col + 2].Value = "Départs";
+
+            worksheet.Cells[2, col + 3].Value = "F";
+            worksheet.Cells[2, col + 3, 2, col + 5].Merge = true;
+            worksheet.Cells[3, col + 3].Value = "Nouveaux Adhérents";
+            worksheet.Cells[3, col + 4].Value = "Réinscrits";
+            worksheet.Cells[3, col + 5].Value = "Départs";
+
+            col += 6;
+        }
+
+        // Populate data (this part needs to be implemented based on your data structure)
+        // Example:
+        // int row = 4;
+        // foreach (var joueur in joueurs)
+        // {
+        //     // Add logic to populate data for each joueur
+        //     row++;
+        // }
+
+    }
     public static void AjouterAdherents(ExcelPackage excelPackage, IEnumerable<Rapport.ClubDTO> clubDtos)
     {
         var worksheet = excelPackage.Workbook.Worksheets.Add("Adherents");
@@ -37,66 +77,33 @@ public static class ExcelExtensions
                 var adherents = saison.Categories.SelectMany(c => c.Adherents).ToList();
                 worksheet.Cells[row, 1].Value = club.Sigle;
                 worksheet.Cells[row, 2].Value = saison.Saison;
-                worksheet.Cells[row, 3].Value = adherents.Count(a => a.Categorie.Contains("Minibad") && a.Sexe == "H");
-                worksheet.Cells[row, 4].Value = adherents.Count(a => a.Categorie.Contains("Minibad") && a.Sexe == "F");
-                worksheet.Cells[row, 5].Value =
-                    adherents.Count(a => a.Categorie.Contains("Poussin 1") && a.Sexe == "H");
-                worksheet.Cells[row, 6].Value =
-                    adherents.Count(a => a.Categorie.Contains("Poussin 1") && a.Sexe == "F");
-                worksheet.Cells[row, 7].Value =
-                    adherents.Count(a => a.Categorie.Contains("Poussin 2") && a.Sexe == "H");
-                worksheet.Cells[row, 8].Value =
-                    adherents.Count(a => a.Categorie.Contains("Poussin 2") && a.Sexe == "F");
-                worksheet.Cells[row, 9].Value =
-                    adherents.Count(a => a.Categorie.Contains("Benjamin 1") && a.Sexe == "H");
-                worksheet.Cells[row, 10].Value =
-                    adherents.Count(a => a.Categorie.Contains("Benjamin 1") && a.Sexe == "F");
-                worksheet.Cells[row, 11].Value =
-                    adherents.Count(a => a.Categorie.Contains("Benjamin 2") && a.Sexe == "H");
-                worksheet.Cells[row, 12].Value =
-                    adherents.Count(a => a.Categorie.Contains("Benjamin 2") && a.Sexe == "F");
-                worksheet.Cells[row, 13].Value =
-                    adherents.Count(a => a.Categorie.Contains("Minime 1") && a.Sexe == "H");
-                worksheet.Cells[row, 14].Value =
-                    adherents.Count(a => a.Categorie.Contains("Minime 1") && a.Sexe == "F");
-                worksheet.Cells[row, 15].Value =
-                    adherents.Count(a => a.Categorie.Contains("Minime 2") && a.Sexe == "H");
-                worksheet.Cells[row, 16].Value =
-                    adherents.Count(a => a.Categorie.Contains("Minime 2") && a.Sexe == "F");
-                worksheet.Cells[row, 17].Value = adherents.Count(a => a.Categorie.Contains("Cadet 1") && a.Sexe == "H");
-                worksheet.Cells[row, 18].Value = adherents.Count(a => a.Categorie.Contains("Cadet 1") && a.Sexe == "F");
-                worksheet.Cells[row, 19].Value = adherents.Count(a => a.Categorie.Contains("Cadet 2") && a.Sexe == "H");
-                worksheet.Cells[row, 20].Value = adherents.Count(a => a.Categorie.Contains("Cadet 2") && a.Sexe == "F");
-                worksheet.Cells[row, 21].Value =
-                    adherents.Count(a => a.Categorie.Contains("Junior 1") && a.Sexe == "H");
-                worksheet.Cells[row, 22].Value =
-                    adherents.Count(a => a.Categorie.Contains("Junior 1") && a.Sexe == "F");
-                worksheet.Cells[row, 23].Value =
-                    adherents.Count(a => a.Categorie.Contains("Junior 2") && a.Sexe == "H");
-                worksheet.Cells[row, 24].Value =
-                    adherents.Count(a => a.Categorie.Contains("Junior 2") && a.Sexe == "F");
-                worksheet.Cells[row, 25].Value = adherents.Count(a => a.Categorie.Contains("Senior") && a.Sexe == "H");
-                worksheet.Cells[row, 26].Value = adherents.Count(a => a.Categorie.Contains("Senior") && a.Sexe == "F");
-                worksheet.Cells[row, 27].Value =
-                    adherents.Count(a => a.Categorie.Contains("Veteran 1") && a.Sexe == "H");
-                worksheet.Cells[row, 28].Value =
-                    adherents.Count(a => a.Categorie.Contains("Veteran 1") && a.Sexe == "F");
-                worksheet.Cells[row, 29].Value =
-                    adherents.Count(a => a.Categorie.Contains("Veteran 2") && a.Sexe == "H");
-                worksheet.Cells[row, 30].Value =
-                    adherents.Count(a => a.Categorie.Contains("Veteran 2") && a.Sexe == "F");
-                worksheet.Cells[row, 31].Value =
-                    adherents.Count(a => a.Categorie.Contains("Veteran 3") && a.Sexe == "H");
-                worksheet.Cells[row, 32].Value =
-                    adherents.Count(a => a.Categorie.Contains("Veteran 3") && a.Sexe == "F");
-                worksheet.Cells[row, 33].Value = adherents.Count(a =>
-                    (a.Categorie.Contains("Veteran 4") || a.Categorie.Contains("Veteran 5") ||
-                     a.Categorie.Contains("Veteran 6") ||
-                     a.Categorie.Contains("Veteran 7") || a.Categorie.Contains("Veteran 8")) && a.Sexe == "H");
-                worksheet.Cells[row, 34].Value = adherents.Count(a =>
-                    (a.Categorie.Contains("Veteran 4") || a.Categorie.Contains("Veteran 5") ||
-                     a.Categorie.Contains("Veteran 6") ||
-                     a.Categorie.Contains("Veteran 7") || a.Categorie.Contains("Veteran 8")) && a.Sexe == "F");
+
+                var categories = new[]
+                {
+                    new { Name = "Minibad", StartCol = 3 },
+                    new { Name = "Poussin 1", StartCol = 5 },
+                    new { Name = "Poussin 2", StartCol = 7 },
+                    new { Name = "Benjamin 1", StartCol = 9 },
+                    new { Name = "Benjamin 2", StartCol = 11 },
+                    new { Name = "Minime 1", StartCol = 13 },
+                    new { Name = "Minime 2", StartCol = 15 },
+                    new { Name = "Cadet 1", StartCol = 17 },
+                    new { Name = "Cadet 2", StartCol = 19 },
+                    new { Name = "Junior 1", StartCol = 21 },
+                    new { Name = "Junior 2", StartCol = 23 },
+                    new { Name = "Senior", StartCol = 25 },
+                    new { Name = "Veteran 1", StartCol = 27 },
+                    new { Name = "Veteran 2", StartCol = 29 },
+                    new { Name = "Veteran 3", StartCol = 31 },
+                    new { Name = "Veteran 4+", StartCol = 33 }
+                };
+
+                foreach (var category in categories)
+                {
+                    worksheet.Cells[row, category.StartCol].Value = adherents.Count(a => a.Categorie.Contains(category.Name) && a.Sexe == "H");
+                    worksheet.Cells[row, category.StartCol + 1].Value = adherents.Count(a => a.Categorie.Contains(category.Name) && a.Sexe == "F");
+                }
+
                 worksheet.Cells[row, 35].Value = adherents.Count;
                 row++;
             }
