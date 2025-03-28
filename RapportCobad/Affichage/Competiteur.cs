@@ -1,0 +1,1 @@
+public record Competiteur(string Nom, string Prenom, string NumeroDeLicence, string SigleClub, string Categorie);
