@@ -13,21 +13,61 @@ public record Rapport
     // avoir liste des adhérents ayant toutes les saisons
     public IEnumerable<JoueurDTO> ObtenirJoueurs()
     {
+        var lesSaisons = Saisons.Select(_ => _.NomDeLaSaison).Distinct();
+        var premiereSaison = lesSaisons.Order().First().Substring(2, 5);
+        var secondeSaison = lesSaisons.Order().Last().Substring(2, 5);
         var adherentsNonFiltree = Saisons.SelectMany(s => s.Adherents);
 
         return adherentsNonFiltree
             .GroupBy(a => a.NumeroDeLicence)
-            .Select(g =>
-                new JoueurDTO(g.Key, g.First().Nom, g.First().Prenom,
-                    g.Select(_ => new JoueurParSaisonDTO(_.Saison, _.SigleClub, _.Categorie))));
+            .Select(grouped =>
+            {
+                var saisonPrecedente = grouped.FirstOrDefault(_ => _.Saison == premiereSaison);
+                var saisonCourante = grouped.FirstOrDefault(_ => _.Saison == secondeSaison);
+
+                if (saisonPrecedente != null && saisonCourante != null)
+                {
+                    if (saisonPrecedente.SigleClub == saisonCourante.SigleClub)
+                    {
+                        // est réinscrit dans le même club
+                        return new JoueurDTO(saisonPrecedente.NumeroDeLicence,
+                            saisonPrecedente.Nom, saisonPrecedente.Prenom, saisonPrecedente.Sexe,
+                            saisonPrecedente.Categorie, saisonPrecedente.SigleClub, false, true, false, false);
+                    }
+
+                    // est parti dans un autre club du département
+                    return new JoueurDTO(saisonPrecedente.NumeroDeLicence,
+                        saisonPrecedente.Nom, saisonPrecedente.Prenom, saisonPrecedente.Sexe,
+                        saisonPrecedente.Categorie, saisonPrecedente.SigleClub, false, false, true, false);
+                }
+
+                // est arrivé à la seconde saison
+                if (saisonPrecedente == null && saisonCourante != null)
+                {
+                    return new JoueurDTO(saisonCourante.NumeroDeLicence,
+                        saisonCourante.Nom, saisonCourante.Prenom, saisonCourante.Sexe,
+                        saisonCourante.Categorie, saisonCourante.SigleClub, true, false, false, false);
+                }
+
+                // est parti
+                if (saisonPrecedente != null && saisonCourante == null)
+                {
+                    return new JoueurDTO(saisonPrecedente.NumeroDeLicence,
+                        saisonPrecedente.Nom, saisonPrecedente.Prenom, saisonPrecedente.Sexe,
+                        saisonPrecedente.Categorie, saisonPrecedente.SigleClub, false, false, false, true);
+                }
+
+                throw new InvalidOperationException();
+
+            });
+
     }
 
     public record ClubDTO(string Sigle, IList<SaisonDTO> Saisons);
     public record SaisonDTO(string Saison, IList<CategorieDTO> Categories);
     public record CategorieDTO(string Categorie, IList<Adherent> Adherents);
-    public record JoueurDTO(string NumeroLicence, string Nom, string Prenom, IEnumerable<JoueurParSaisonDTO> Saisons);
+    public record JoueurDTO(string NumeroLicence, string Nom, string Prenom, string Sexe, string Categorie, string Club, bool EstNouveauJoueur, bool EstReinscrit, bool EstPartiDansUnAutreClubDuDepartement, bool EstParti);
 
-    public record JoueurParSaisonDTO(string Saison, string Club, string Categorie);
 
     public decimal PourcentageDeCompetiteursAyantRenouveleDUneSaisonSurLAutre => Saisons
         .Zip(Saisons.Skip(1), (s1, s2) => (s1, s2))

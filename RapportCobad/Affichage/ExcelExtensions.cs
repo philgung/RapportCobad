@@ -3,6 +3,7 @@ using OfficeOpenXml.Table;
 
 public static class ExcelExtensions
 {
+    static readonly string[] _categoriesVeteran4Plus = ["Veteran 4", "Veteran 5", "Veteran 6", "Veteran 7"];
     public static void AjouterReinscription(ExcelPackage package, IEnumerable<Rapport.JoueurDTO> joueurs)
     {
         var worksheet = package.Workbook.Worksheets.Add("Nouveaux Adherents/Réinscrits");
@@ -12,35 +13,109 @@ public static class ExcelExtensions
 
         var categories = new[] { "Minibad", "Poussin 1", "Poussin 2", "Benjamin 1", "Benjamin 2", "Minime 1", "Minime 2", "Cadet 1", "Cadet 2", "Junior 1", "Junior 2", "Senior", "Veteran 1", "Veteran 2", "Veteran 3", "Veteran 4+" };
 
+
         var col = 2;
         foreach (var category in categories)
         {
             worksheet.Cells[1, col].Value = category;
-            worksheet.Cells[1, col, 1, col + 5].Merge = true;
+            //worksheet.Cells[1, col, 1, col + 5].Merge = true;
 
             worksheet.Cells[2, col].Value = "H";
-            worksheet.Cells[2, col, 2, col + 2].Merge = true;
+            //worksheet.Cells[2, col, 2, col + 3].Merge = true;
             worksheet.Cells[3, col].Value = "Nouveaux Adhérents";
             worksheet.Cells[3, col + 1].Value = "Réinscrits";
             worksheet.Cells[3, col + 2].Value = "Départs";
+            worksheet.Cells[3, col + 3].Value = "Départs dans un autre club";
 
-            worksheet.Cells[2, col + 3].Value = "F";
-            worksheet.Cells[2, col + 3, 2, col + 5].Merge = true;
-            worksheet.Cells[3, col + 3].Value = "Nouveaux Adhérents";
-            worksheet.Cells[3, col + 4].Value = "Réinscrits";
-            worksheet.Cells[3, col + 5].Value = "Départs";
+            worksheet.Cells[2, col + 4].Value = "F";
+            //worksheet.Cells[2, col + 4, 2, col + 7].Merge = true;
+            worksheet.Cells[3, col + 4].Value = "Nouveaux Adhérents";
+            worksheet.Cells[3, col + 5].Value = "Réinscrits";
+            worksheet.Cells[3, col + 6].Value = "Départs";
+            worksheet.Cells[3, col + 7].Value = "Départs dans un autre club";
 
-            col += 6;
+            col += 8;
         }
 
-        // Populate data (this part needs to be implemented based on your data structure)
-        // Example:
-        // int row = 4;
-        // foreach (var joueur in joueurs)
-        // {
-        //     // Add logic to populate data for each joueur
-        //     row++;
-        // }
+        int row = 4;
+        // afficher le nombre de réinscrits par sexe par catégorie et par club
+
+        var valeurs = joueurs.GroupBy(joueur => new {joueur.Club, joueur.Categorie, joueur.Sexe})
+            .Select(g => new
+            {
+                g.Key.Club,
+                g.Key.Categorie,
+                g.Key.Sexe,
+                NouveauxAdherents = g.Count(a => a.EstNouveauJoueur),
+                Reinscrits = g.Count(a => a.EstReinscrit),
+                Depart = g.Count(a => a.EstParti),
+                DepartDansUnAutreClub = g.Count(a => a.EstPartiDansUnAutreClubDuDepartement)
+            })
+            .ToList();
+
+        foreach (var groupeParClub in valeurs.GroupBy(v => v.Club))
+        {
+            worksheet.Cells[row, 1].Value = groupeParClub.Key;
+            var colIndex = 2;
+            foreach (var categorie in categories)
+            {
+                if (categorie == "Veteran 4+")
+                {
+                    var hommes = groupeParClub
+                        .Where(v => _categoriesVeteran4Plus.Contains(v.Categorie) && v.Sexe == "H");
+                    if (hommes != null)
+                    {
+                        worksheet.Cells[row, colIndex].Value = hommes.Sum(_ => _.NouveauxAdherents);
+                        worksheet.Cells[row, colIndex + 1].Value = hommes.Sum(_ => _.Reinscrits);
+                        worksheet.Cells[row, colIndex + 2].Value = hommes.Sum(_ => _.Depart);
+                        worksheet.Cells[row, colIndex + 3].Value = hommes.Sum(_ => _.DepartDansUnAutreClub);
+                    }
+
+                    var femmes = groupeParClub
+                        .Where(v => _categoriesVeteran4Plus.Contains(v.Categorie) && v.Sexe == "F");
+                    if (femmes != null)
+                    {
+                        worksheet.Cells[row, colIndex + 4].Value = femmes.Sum(_ => _.NouveauxAdherents);
+                        worksheet.Cells[row, colIndex + 5].Value = femmes.Sum(_ => _.Reinscrits);
+                        worksheet.Cells[row, colIndex + 6].Value = femmes.Sum(_ => _.Depart);
+                        worksheet.Cells[row, colIndex + 7].Value = femmes.Sum(_ => _.DepartDansUnAutreClub);
+                    }
+                }
+                else
+                {
+                    var hommes = groupeParClub
+                        .SingleOrDefault(v => v.Categorie == categorie && v.Sexe == "H");
+                    if (hommes != null)
+                    {
+                        worksheet.Cells[row, colIndex].Value = hommes.NouveauxAdherents;
+                        worksheet.Cells[row, colIndex + 1].Value = hommes.Reinscrits;
+                        worksheet.Cells[row, colIndex + 2].Value = hommes.Depart;
+                        worksheet.Cells[row, colIndex + 3].Value = hommes.DepartDansUnAutreClub;
+                    }
+
+                    var femmes = groupeParClub
+                        .SingleOrDefault(v => v.Categorie == categorie && v.Sexe == "F");
+                    if (femmes != null)
+                    {
+                        worksheet.Cells[row, colIndex + 4].Value = femmes.NouveauxAdherents;
+                        worksheet.Cells[row, colIndex + 5].Value = femmes.Reinscrits;
+                        worksheet.Cells[row, colIndex + 6].Value = femmes.Depart;
+                        worksheet.Cells[row, colIndex + 7].Value = femmes.DepartDansUnAutreClub;
+                    }
+                }
+
+                colIndex += 8;
+            }
+
+            row++;
+        }
+
+
+
+        // Format as table
+        var range = worksheet.Cells[1, 1, row, col]; // Adjusted to start from row 1
+        var table = worksheet.Tables.Add(range, "NouveauxAdherentsReinscritsTable");
+        table.TableStyle = TableStyles.Medium9;
 
     }
     public static void AjouterAdherents(ExcelPackage excelPackage, IEnumerable<Rapport.ClubDTO> clubDtos)
@@ -100,8 +175,16 @@ public static class ExcelExtensions
 
                 foreach (var category in categories)
                 {
-                    worksheet.Cells[row, category.StartCol].Value = adherents.Count(a => a.Categorie.Contains(category.Name) && a.Sexe == "H");
-                    worksheet.Cells[row, category.StartCol + 1].Value = adherents.Count(a => a.Categorie.Contains(category.Name) && a.Sexe == "F");
+                    if (category.Name == "Veteran 4+")
+                    {
+                        worksheet.Cells[row, category.StartCol].Value = adherents.Count(a => _categoriesVeteran4Plus.Contains(a.Categorie) && a.Sexe == "H");
+                        worksheet.Cells[row, category.StartCol + 1].Value = adherents.Count(a => _categoriesVeteran4Plus.Contains(a.Categorie) && a.Sexe == "F");
+                    }
+                    else
+                    {
+                        worksheet.Cells[row, category.StartCol].Value = adherents.Count(a => a.Categorie.Contains(category.Name) && a.Sexe == "H");
+                        worksheet.Cells[row, category.StartCol + 1].Value = adherents.Count(a => a.Categorie.Contains(category.Name) && a.Sexe == "F");
+                    }
                 }
 
                 worksheet.Cells[row, 35].Value = adherents.Count;
