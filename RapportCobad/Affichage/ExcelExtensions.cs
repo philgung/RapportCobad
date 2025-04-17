@@ -139,13 +139,18 @@ public static class ExcelExtensions
                 {
                     if (category.Name == "Veteran 4+")
                     {
-                        worksheet.Cells[row, category.StartCol].Value = adherents.Count(a => _categoriesVeteran4Plus.Contains(a.Categorie) && a.Sexe == "H");
-                        worksheet.Cells[row, category.StartCol + 1].Value = adherents.Count(a => _categoriesVeteran4Plus.Contains(a.Categorie) && a.Sexe == "F");
+                        var joueursVeteran4Plus = adherents
+                            .Where(a => _categoriesVeteran4Plus.Contains(a.Categorie)).ToList();
+
+                        worksheet.Cells[row, category.StartCol].Value = joueursVeteran4Plus.Count(a => a.Sexe == "H");
+                        worksheet.Cells[row, category.StartCol + 1].Value = joueursVeteran4Plus.Count(a => a.Sexe == "F");
                     }
                     else
                     {
-                        worksheet.Cells[row, category.StartCol].Value = adherents.Count(a => a.Categorie.Contains(category.Name) && a.Sexe == "H");
-                        worksheet.Cells[row, category.StartCol + 1].Value = adherents.Count(a => a.Categorie.Contains(category.Name) && a.Sexe == "F");
+                        var joueursParCategorie = adherents
+                            .Where(a => a.Categorie == category.Name).ToList();
+                        worksheet.Cells[row, category.StartCol].Value = joueursParCategorie.Count(a => a.Sexe == "H");
+                        worksheet.Cells[row, category.StartCol + 1].Value = joueursParCategorie.Count(a => a.Sexe == "F");
                     }
                 }
 
