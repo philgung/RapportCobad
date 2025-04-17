@@ -68,17 +68,5 @@ public record Rapport
     public record CategorieDTO(string Categorie, IList<Adherent> Adherents);
     public record JoueurDTO(string NumeroLicence, string Nom, string Prenom, string Sexe, string Categorie, string Club, bool EstNouveauJoueur, bool EstReinscrit, bool EstPartiDansUnAutreClubDuDepartement, bool EstParti);
 
-
-    public decimal PourcentageDeCompetiteursAyantRenouveleDUneSaisonSurLAutre => Saisons
-        .Zip(Saisons.Skip(1), (s1, s2) => (s1, s2))
-        .SelectMany(t => t.s1.Competitions.SelectMany(c => c.Competiteurs)
-            .Select(c => c.NumeroDeLicence)
-            .Distinct()
-            .Intersect(t.s2.Competitions.SelectMany(c => c.Competiteurs)
-                .Select(c => c.NumeroDeLicence)
-                .Distinct()))
-        .Count() / (decimal)Saisons.Sum(s => s.Competitions.Sum(c => c.Competiteurs.Count));
-
-
 }
 

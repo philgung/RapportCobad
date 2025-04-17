@@ -4,6 +4,9 @@ using OfficeOpenXml.Table;
 public static class ExcelExtensions
 {
     static readonly string[] _categoriesVeteran4Plus = ["Veteran 4", "Veteran 5", "Veteran 6", "Veteran 7"];
+    static readonly string[] Categories = ["Minibad", "Poussin 1", "Poussin 2", "Benjamin 1", "Benjamin 2", "Minime 1", "Minime 2", "Cadet 1", "Cadet 2", "Junior 1", "Junior 2", "Senior", "Veteran 1", "Veteran 2", "Veteran 3", "Veteran 4+"
+    ];
+
     public static void AjouterReinscription(ExcelPackage package, IEnumerable<Rapport.JoueurDTO> joueurs)
     {
         var worksheet = package.Workbook.Worksheets.Add("Nouveaux Adherents/Réinscrits");
@@ -11,11 +14,9 @@ public static class ExcelExtensions
         // compare la saison courante avec la saison précédente par avec le nombre d'adherents la saison précédente, le nombre de nouveaux adhérents
         // le nombre de départ et le nombre de réinscrits par sexe par catégorie et par club
 
-        var categories = new[] { "Minibad", "Poussin 1", "Poussin 2", "Benjamin 1", "Benjamin 2", "Minime 1", "Minime 2", "Cadet 1", "Cadet 2", "Junior 1", "Junior 2", "Senior", "Veteran 1", "Veteran 2", "Veteran 3", "Veteran 4+" };
-
 
         var col = 2;
-        foreach (var category in categories)
+        foreach (var category in Categories)
         {
             worksheet.Cells[1, col].Value = category;
             //worksheet.Cells[1, col, 1, col + 5].Merge = true;
@@ -57,7 +58,7 @@ public static class ExcelExtensions
         {
             worksheet.Cells[row, 1].Value = groupeParClub.Key;
             var colIndex = 2;
-            foreach (var categorie in categories)
+            foreach (var categorie in Categories)
             {
                 if (categorie == "Veteran 4+")
                 {
@@ -126,22 +127,13 @@ public static class ExcelExtensions
         worksheet.Cells[1, 1].Value = "Club";
         worksheet.Cells[1, 2].Value = "Saison";
 
-        ConfigureHeader(worksheet, "Minibad", 3);
-        ConfigureHeader(worksheet, "Poussin 1", 5);
-        ConfigureHeader(worksheet, "Poussin 2", 7);
-        ConfigureHeader(worksheet, "Benjamin 1", 9);
-        ConfigureHeader(worksheet, "Benjamin 2", 11);
-        ConfigureHeader(worksheet, "Minime 1", 13);
-        ConfigureHeader(worksheet, "Minime 2", 15);
-        ConfigureHeader(worksheet, "Cadet 1", 17);
-        ConfigureHeader(worksheet, "Cadet 2", 19);
-        ConfigureHeader(worksheet, "Junior 1", 21);
-        ConfigureHeader(worksheet, "Junior 2", 23);
-        ConfigureHeader(worksheet, "Senior", 25);
-        ConfigureHeader(worksheet, "Veteran 1", 27);
-        ConfigureHeader(worksheet, "Veteran 2", 29);
-        ConfigureHeader(worksheet, "Veteran 3", 31);
-        ConfigureHeader(worksheet, "Veteran 4+", 33);
+        var colIndex = 3;
+        foreach (var categorie in Categories)
+        {
+            ConfigureHeader(worksheet, categorie, colIndex);
+            colIndex += 2;
+        }
+
         worksheet.Cells[1, 35].Value = "Nombre d'adhérents";
 
         var row = 3;
@@ -153,25 +145,9 @@ public static class ExcelExtensions
                 worksheet.Cells[row, 1].Value = club.Sigle;
                 worksheet.Cells[row, 2].Value = saison.Saison;
 
-                var categories = new[]
-                {
-                    new { Name = "Minibad", StartCol = 3 },
-                    new { Name = "Poussin 1", StartCol = 5 },
-                    new { Name = "Poussin 2", StartCol = 7 },
-                    new { Name = "Benjamin 1", StartCol = 9 },
-                    new { Name = "Benjamin 2", StartCol = 11 },
-                    new { Name = "Minime 1", StartCol = 13 },
-                    new { Name = "Minime 2", StartCol = 15 },
-                    new { Name = "Cadet 1", StartCol = 17 },
-                    new { Name = "Cadet 2", StartCol = 19 },
-                    new { Name = "Junior 1", StartCol = 21 },
-                    new { Name = "Junior 2", StartCol = 23 },
-                    new { Name = "Senior", StartCol = 25 },
-                    new { Name = "Veteran 1", StartCol = 27 },
-                    new { Name = "Veteran 2", StartCol = 29 },
-                    new { Name = "Veteran 3", StartCol = 31 },
-                    new { Name = "Veteran 4+", StartCol = 33 }
-                };
+
+                var categories = Categories.Select((categorie, index) => new { Name = categorie, StartCol = 3 + index * 2 })
+                    .ToList();;
 
                 foreach (var category in categories)
                 {
