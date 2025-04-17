@@ -41,20 +41,21 @@ public static class ExcelExtensions
         int row = 4;
         // afficher le nombre de réinscrits par sexe par catégorie et par club
 
-        var valeurs = joueurs.GroupBy(joueur => new {joueur.Club, joueur.Categorie, joueur.Sexe})
-            .Select(g => new
-            {
+        var groupesParClub = joueurs.GroupBy(joueur => new {joueur.Club, joueur.Categorie, joueur.Sexe})
+            .Select(g => new JoueurParClub
+            (
                 g.Key.Club,
                 g.Key.Categorie,
                 g.Key.Sexe,
-                NouveauxAdherents = g.Count(a => a.EstNouveauJoueur),
-                Reinscrits = g.Count(a => a.EstReinscrit),
-                Depart = g.Count(a => a.EstParti),
-                DepartDansUnAutreClub = g.Count(a => a.EstPartiDansUnAutreClubDuDepartement)
-            })
+                g.Count(a => a.EstNouveauJoueur),
+                g.Count(a => a.EstReinscrit),
+                g.Count(a => a.EstParti),
+                g.Count(a => a.EstPartiDansUnAutreClubDuDepartement)
+            ))
+            .GroupBy(v => v.Club)
             .ToList();
 
-        foreach (var groupeParClub in valeurs.GroupBy(v => v.Club))
+        foreach (var groupeParClub in groupesParClub)
         {
             worksheet.Cells[row, 1].Value = groupeParClub.Key;
             var colIndex = 2;
@@ -62,56 +63,20 @@ public static class ExcelExtensions
             {
                 if (categorie == "Veteran 4+")
                 {
-                    var hommes = groupeParClub
-                        .Where(v => _categoriesVeteran4Plus.Contains(v.Categorie) && v.Sexe == "H");
-                    if (hommes != null)
-                    {
-                        worksheet.Cells[row, colIndex].Value = hommes.Sum(_ => _.NouveauxAdherents);
-                        worksheet.Cells[row, colIndex + 1].Value = hommes.Sum(_ => _.Reinscrits);
-                        worksheet.Cells[row, colIndex + 2].Value = hommes.Sum(_ => _.Depart);
-                        worksheet.Cells[row, colIndex + 3].Value = hommes.Sum(_ => _.DepartDansUnAutreClub);
-                    }
-
-                    var femmes = groupeParClub
-                        .Where(v => _categoriesVeteran4Plus.Contains(v.Categorie) && v.Sexe == "F");
-                    if (femmes != null)
-                    {
-                        worksheet.Cells[row, colIndex + 4].Value = femmes.Sum(_ => _.NouveauxAdherents);
-                        worksheet.Cells[row, colIndex + 5].Value = femmes.Sum(_ => _.Reinscrits);
-                        worksheet.Cells[row, colIndex + 6].Value = femmes.Sum(_ => _.Depart);
-                        worksheet.Cells[row, colIndex + 7].Value = femmes.Sum(_ => _.DepartDansUnAutreClub);
-                    }
+                    var joueursVeteran4Plus = groupeParClub
+                        .Where(v => _categoriesVeteran4Plus.Contains(v.Categorie));
+                    RemplirJoueur(joueursVeteran4Plus, worksheet, row, colIndex);
                 }
                 else
                 {
-                    var hommes = groupeParClub
-                        .SingleOrDefault(v => v.Categorie == categorie && v.Sexe == "H");
-                    if (hommes != null)
-                    {
-                        worksheet.Cells[row, colIndex].Value = hommes.NouveauxAdherents;
-                        worksheet.Cells[row, colIndex + 1].Value = hommes.Reinscrits;
-                        worksheet.Cells[row, colIndex + 2].Value = hommes.Depart;
-                        worksheet.Cells[row, colIndex + 3].Value = hommes.DepartDansUnAutreClub;
-                    }
-
-                    var femmes = groupeParClub
-                        .SingleOrDefault(v => v.Categorie == categorie && v.Sexe == "F");
-                    if (femmes != null)
-                    {
-                        worksheet.Cells[row, colIndex + 4].Value = femmes.NouveauxAdherents;
-                        worksheet.Cells[row, colIndex + 5].Value = femmes.Reinscrits;
-                        worksheet.Cells[row, colIndex + 6].Value = femmes.Depart;
-                        worksheet.Cells[row, colIndex + 7].Value = femmes.DepartDansUnAutreClub;
-                    }
+                    var joueursParCategorie = groupeParClub.Where(v => v.Categorie == categorie);
+                    RemplirJoueur(joueursParCategorie, worksheet, row, colIndex);
                 }
 
                 colIndex += 8;
             }
-
             row++;
         }
-
-
 
         // Format as table
         var range = worksheet.Cells[1, 1, row, col]; // Adjusted to start from row 1
@@ -119,6 +84,27 @@ public static class ExcelExtensions
         table.TableStyle = TableStyles.Medium9;
 
     }
+
+    private static void RemplirJoueur(IEnumerable<JoueurParClub> joueurs, ExcelWorksheet worksheet, int row, int colIndex)
+    {
+        var hommes = joueurs.Where(v => v.Sexe == "H");
+        if (hommes != null)
+        {
+            worksheet.Cells[row, colIndex].Value = hommes.Sum(_ => _.NouveauxAdherents);
+            worksheet.Cells[row, colIndex + 1].Value = hommes.Sum(_ => _.Reinscrits);
+            worksheet.Cells[row, colIndex + 2].Value = hommes.Sum(_ => _.Depart);
+            worksheet.Cells[row, colIndex + 3].Value = hommes.Sum(_ => _.DepartDansUnAutreClub);
+        }
+        var femmes = joueurs.Where(v => v.Sexe == "F");
+        if (femmes != null)
+        {
+            worksheet.Cells[row, colIndex + 4].Value = femmes.Sum(_ => _.NouveauxAdherents);
+            worksheet.Cells[row, colIndex + 5].Value = femmes.Sum(_ => _.Reinscrits);
+            worksheet.Cells[row, colIndex + 6].Value = femmes.Sum(_ => _.Depart);
+            worksheet.Cells[row, colIndex + 7].Value = femmes.Sum(_ => _.DepartDansUnAutreClub);
+        }
+    }
+
     public static void AjouterAdherents(ExcelPackage excelPackage, IEnumerable<Rapport.ClubDTO> clubDtos)
     {
         var worksheet = excelPackage.Workbook.Worksheets.Add("Adherents");
@@ -182,3 +168,5 @@ public static class ExcelExtensions
         excelWorksheet.Cells[2, colInitial + 1].Value = "F";
     }
 }
+
+internal record JoueurParClub(string Club, string Categorie, string Sexe, int NouveauxAdherents, int Reinscrits, int Depart, int DepartDansUnAutreClub);
