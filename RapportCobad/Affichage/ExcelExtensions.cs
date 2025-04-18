@@ -10,7 +10,7 @@ public static class ExcelExtensions
     public static void AjouterReinscription(ExcelPackage package, IEnumerable<Rapport.JoueurDTO> joueurs)
     {
         var worksheet = package.Workbook.Worksheets.Add("Nouveaux Adherents/Réinscrits");
-        AjouterHeader(worksheet);
+        var col = AjouterHeader(worksheet);
 
         var row = 4;
         // afficher le nombre de réinscrits par sexe par catégorie et par club
@@ -59,7 +59,7 @@ public static class ExcelExtensions
 
     }
 
-    private static void AjouterHeader(ExcelWorksheet worksheet)
+    private static int AjouterHeader(ExcelWorksheet worksheet)
     {
         worksheet.Cells[1, 1].Value = "Club";
         // compare la saison courante avec la saison précédente par avec le nombre d'adherents la saison précédente, le nombre de nouveaux adhérents
@@ -88,6 +88,8 @@ public static class ExcelExtensions
 
             col += 8;
         }
+
+        return col;
     }
 
     private static void RemplirJoueur(IEnumerable<JoueurParClub> joueurs, ExcelWorksheet worksheet, int row, int colIndex)
