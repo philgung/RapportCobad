@@ -10,35 +10,9 @@ public static class ExcelExtensions
     public static void AjouterReinscription(ExcelPackage package, IEnumerable<Rapport.JoueurDTO> joueurs)
     {
         var worksheet = package.Workbook.Worksheets.Add("Nouveaux Adherents/Réinscrits");
-        worksheet.Cells[1, 1].Value = "Club";
-        // compare la saison courante avec la saison précédente par avec le nombre d'adherents la saison précédente, le nombre de nouveaux adhérents
-        // le nombre de départ et le nombre de réinscrits par sexe par catégorie et par club
+        AjouterHeader(worksheet);
 
-
-        var col = 2;
-        foreach (var category in Categories)
-        {
-            worksheet.Cells[1, col].Value = category;
-            //worksheet.Cells[1, col, 1, col + 5].Merge = true;
-
-            worksheet.Cells[2, col].Value = "H";
-            //worksheet.Cells[2, col, 2, col + 3].Merge = true;
-            worksheet.Cells[3, col].Value = "Nouveaux Adhérents";
-            worksheet.Cells[3, col + 1].Value = "Réinscrits";
-            worksheet.Cells[3, col + 2].Value = "Départs";
-            worksheet.Cells[3, col + 3].Value = "Départs dans un autre club";
-
-            worksheet.Cells[2, col + 4].Value = "F";
-            //worksheet.Cells[2, col + 4, 2, col + 7].Merge = true;
-            worksheet.Cells[3, col + 4].Value = "Nouveaux Adhérents";
-            worksheet.Cells[3, col + 5].Value = "Réinscrits";
-            worksheet.Cells[3, col + 6].Value = "Départs";
-            worksheet.Cells[3, col + 7].Value = "Départs dans un autre club";
-
-            col += 8;
-        }
-
-        int row = 4;
+        var row = 4;
         // afficher le nombre de réinscrits par sexe par catégorie et par club
 
         var groupesParClub = joueurs.GroupBy(joueur => new {joueur.Club, joueur.Categorie, joueur.Sexe})
@@ -83,6 +57,37 @@ public static class ExcelExtensions
         var table = worksheet.Tables.Add(range, "NouveauxAdherentsReinscritsTable");
         table.TableStyle = TableStyles.Medium9;
 
+    }
+
+    private static void AjouterHeader(ExcelWorksheet worksheet)
+    {
+        worksheet.Cells[1, 1].Value = "Club";
+        // compare la saison courante avec la saison précédente par avec le nombre d'adherents la saison précédente, le nombre de nouveaux adhérents
+        // le nombre de départ et le nombre de réinscrits par sexe par catégorie et par club
+
+
+        var col = 2;
+        foreach (var category in Categories)
+        {
+            worksheet.Cells[1, col].Value = category;
+            //worksheet.Cells[1, col, 1, col + 5].Merge = true;
+
+            worksheet.Cells[2, col].Value = "H";
+            //worksheet.Cells[2, col, 2, col + 3].Merge = true;
+            worksheet.Cells[3, col].Value = "Nouveaux Adhérents";
+            worksheet.Cells[3, col + 1].Value = "Réinscrits";
+            worksheet.Cells[3, col + 2].Value = "Départs";
+            worksheet.Cells[3, col + 3].Value = "Départs dans un autre club";
+
+            worksheet.Cells[2, col + 4].Value = "F";
+            //worksheet.Cells[2, col + 4, 2, col + 7].Merge = true;
+            worksheet.Cells[3, col + 4].Value = "Nouveaux Adhérents";
+            worksheet.Cells[3, col + 5].Value = "Réinscrits";
+            worksheet.Cells[3, col + 6].Value = "Départs";
+            worksheet.Cells[3, col + 7].Value = "Départs dans un autre club";
+
+            col += 8;
+        }
     }
 
     private static void RemplirJoueur(IEnumerable<JoueurParClub> joueurs, ExcelWorksheet worksheet, int row, int colIndex)
